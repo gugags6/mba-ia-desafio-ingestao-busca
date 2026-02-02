@@ -1,3 +1,12 @@
+import os
+from dotenv import load_dotenv
+
+from langchain_openai import OpenAIEmbeddings
+from langchain_postgres import PGVector
+
+
+
+
 PROMPT_TEMPLATE = """
 CONTEXTO:
 {contexto}
@@ -25,5 +34,53 @@ PERGUNTA DO USUÁRIO:
 RESPONDA A "PERGUNTA DO USUÁRIO"
 """
 
-def search_prompt(question=None):
-    pass
+
+
+
+def search_prompt(question: str, k: int = 10) -> str:
+    """
+    Recebe uma pergunta do usuário e devolve o prompt final
+    contendo os chunks mais relevantes como CONTEXTO.
+    """
+
+    load_dotenv()
+
+
+    for var in ("PGVECTOR_URL", "PGVECTOR_COLLECTION", "OPENAI_API_KEY"):
+        if not os.getenv(var):
+            raise RuntimeError(f"Environment variable {var} is not set")
+
+    if not question:
+        raise ValueError("A pergunta não pode ser vazia.")
+
+
+    embeddings = OpenAIEmbeddings(
+        model=os.getenv("OPENAI_MODEL", "text-embedding-3-small")
+    )
+
+ 
+    store = PGVector(
+        embeddings=embeddings,
+        collection_name=os.getenv("PG_VECTOR_COLLECTION_NAME"),
+        connection=os.getenv("DATABASE_URL"),
+        use_jsonb=True,
+    )
+
+   
+    results = store.similarity_search_with_score(question, k=k)
+
+    if not results:
+        contexto = ""
+    else:
+        # concatenar só os textos
+        contexto = "\n\n".join(
+            [doc.page_content for doc, score in results]
+        )
+
+
+        prompt = PROMPT_TEMPLATE.format(
+        contexto=contexto,
+        pergunta=question
+    )
+
+    return prompt
