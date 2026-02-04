@@ -11,3 +11,22 @@ python src/ingest.py
 
 Passo 3: Executar o script de chat:
 python src/chat.py
+
+#English
+
+Semantic Search with PDF + LangChain + pgvector
+
+Step 1: Start the PGVector Docker environment:
+
+docker compose up -d
+
+
+Step 2: Ingest the document:
+
+python src/ingest.py
+
+
+Step 3: Run the chat script:
+
+python src/chat.py
+
